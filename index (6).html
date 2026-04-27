@@ -1,0 +1,1704 @@
+<html lang="zh-CN"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIVM帝都1.5内测服务器</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Particles.js -->
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <!-- GSAP 动画库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <!-- 音乐播放器样式 -->
+    <style>
+        .music-player {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(26, 26, 78, 0.9);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 107, 157, 0.4);
+            border-radius: 30px;
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .music-player:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(255, 107, 157, 0.3);
+        }
+        
+        .music-player button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1.3rem;
+            margin: 0 8px;
+            transition: all 0.3s ease;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .music-player button:hover {
+            color: var(--accent-color);
+            background: rgba(255, 107, 157, 0.1);
+            transform: scale(1.1);
+        }
+        
+        .music-player button.active {
+            color: var(--accent-color);
+            background: rgba(255, 107, 157, 0.2);
+        }
+        
+        .play-btn {
+            background: linear-gradient(135deg, var(--accent-color), #ff8fab) !important;
+            color: white !important;
+            width: 45px !important;
+            height: 45px !important;
+            font-size: 1.5rem !important;
+            box-shadow: 0 4px 15px rgba(255, 107, 157, 0.4);
+        }
+        
+        .play-btn:hover {
+            transform: scale(1.1) !important;
+            box-shadow: 0 6px 20px rgba(255, 107, 157, 0.6) !important;
+        }
+        
+        .music-info {
+            margin: 0 20px;
+            min-width: 200px;
+            max-width: 300px;
+        }
+        
+        .music-title {
+            font-size: 1rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: white;
+            margin-bottom: 4px;
+        }
+        
+        .music-artist {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .progress-bar {
+            width: 200px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            margin: 0 15px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .progress-bar:hover {
+            height: 6px;
+        }
+        
+        .progress {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-color), #ff8fab);
+            border-radius: 2px;
+            width: 30%;
+            position: relative;
+            transition: width 0.1s linear;
+        }
+        
+        .progress::after {
+            content: '';
+            position: absolute;
+            right: -6px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 12px;
+            height: 12px;
+            background: var(--accent-color);
+            border-radius: 50%;
+            opacity: 0;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 10px rgba(255, 107, 157, 0.6);
+        }
+        
+        .progress-bar:hover .progress::after {
+            opacity: 1;
+        }
+        
+        .time-display {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            min-width: 45px;
+            text-align: center;
+        }
+        
+        .music-visualizer {
+            display: flex;
+            align-items: center;
+            margin: 0 10px;
+        }
+        
+        .visualizer-bar {
+            width: 3px;
+            height: 20px;
+            background: var(--accent-color);
+            margin: 0 2px;
+            border-radius: 2px;
+            animation: visualize 1s ease-in-out infinite;
+            opacity: 0.7;
+        }
+        
+        .visualizer-bar:nth-child(2) {
+            animation-delay: 0.1s;
+            height: 25px;
+        }
+        
+        .visualizer-bar:nth-child(3) {
+            animation-delay: 0.2s;
+            height: 30px;
+        }
+        
+        .visualizer-bar:nth-child(4) {
+            animation-delay: 0.3s;
+            height: 25px;
+        }
+        
+        .visualizer-bar:nth-child(5) {
+            animation-delay: 0.4s;
+            height: 20px;
+        }
+        
+        @keyframes visualize {
+            0%, 100% {
+                transform: scaleY(0.5);
+                opacity: 0.5;
+            }
+            50% {
+                transform: scaleY(1);
+                opacity: 1;
+            }
+        }
+        
+        /* 服务器实时状态面板样式 */
+        .server-status-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(26, 26, 78, 0.9);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 107, 157, 0.4);
+            border-radius: 16px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .status-item i {
+            color: var(--accent-color);
+        }
+        
+        /* 注册登录模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background: var(--secondary-color);
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            border: 1px solid rgba(255, 107, 157, 0.3);
+            position: relative;
+            animation: modalFadeIn 0.3s ease;
+        }
+        
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .close {
+            color: var(--text-secondary);
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .close:hover {
+            color: var(--accent-color);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--text-secondary);
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 15px rgba(255, 107, 157, 0.3);
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .form-group input::placeholder {
+            color: rgba(179, 179, 255, 0.6);
+        }
+        
+        .form-toggle {
+            text-align: center;
+            margin-top: 15px;
+        }
+        
+        .form-toggle a {
+            color: var(--accent-color);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .form-toggle a:hover {
+            text-decoration: underline;
+        }
+        
+        .form-notice {
+            background: rgba(255, 107, 157, 0.1);
+            border: 1px solid rgba(255, 107, 157, 0.3);
+            border-radius: 6px;
+            padding: 10px;
+            margin: 15px 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        
+        .form-notice i {
+            color: var(--accent-color);
+            margin-right: 8px;
+        }
+        
+        .input-icon {
+            position: relative;
+        }
+        
+        .input-icon i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+        
+        .input-icon input {
+            padding-left: 40px !important;
+        }
+        
+
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+        
+        :root {
+            --primary-color: #0f0f2d;
+            --secondary-color: #1a1a4e;
+            --accent-color: #ff6b9d;
+            --text-primary: #ffffff;
+            --text-secondary: #b3b3ff;
+        }
+        
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: var(--primary-color);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+        
+        .font-tech {
+            font-family: 'Orbitron', sans-serif;
+        }
+        
+        #particles-js {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+        
+        .bg-gradient {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        }
+        
+        .card {
+            background: rgba(26, 26, 78, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 107, 157, 0.3);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 107, 157, 0.1), transparent);
+            transition: all 0.6s ease;
+        }
+        
+        .card:hover::before {
+            left: 100%;
+        }
+        
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 30px rgba(255, 107, 157, 0.3);
+            border-color: rgba(255, 107, 157, 0.5);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #ff6b9d, #ff8fab);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            padding: 12px 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+            box-shadow: 0 4px 15px rgba(255, 107, 157, 0.3);
+        }
+        
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: all 0.6s ease;
+            z-index: -1;
+        }
+        
+        .btn-primary:hover::before {
+            left: 100%;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 25px rgba(255, 107, 157, 0.5);
+        }
+        
+        .btn-primary:active {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(255, 107, 157, 0.4);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 2px solid var(--text-secondary);
+            border-radius: 30px;
+            padding: 10px 28px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+            background: var(--text-secondary);
+            color: var(--primary-color);
+            transform: translateY(-3px);
+        }
+        
+        .nav-link {
+            position: relative;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link:hover {
+            color: var(--accent-color);
+        }
+        
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background-color: var(--accent-color);
+            transition: width 0.3s ease;
+        }
+        
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        
+        .status-online {
+            color: #00ff9d;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .hero-title {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            text-shadow: 
+                0 0 10px rgba(255, 107, 157, 0.5),
+                0 0 20px rgba(255, 107, 157, 0.3),
+                0 0 30px rgba(255, 107, 157, 0.1);
+            background: linear-gradient(135deg, #ffffff, #ff6b9d);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: titleGlow 3s ease-in-out infinite alternate;
+        }
+        
+        @keyframes titleGlow {
+            0% {
+                filter: drop-shadow(0 0 5px rgba(255, 107, 157, 0.5));
+            }
+            100% {
+                filter: drop-shadow(0 0 20px rgba(255, 107, 157, 0.8));
+            }
+        }
+        
+        .hero-subtitle {
+            font-size: clamp(1rem, 2vw, 1.5rem);
+            color: var(--text-secondary);
+        }
+        
+        .feature-icon {
+            font-size: 2.5rem;
+            color: var(--accent-color);
+            margin-bottom: 1rem;
+        }
+        
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        .bg-image {
+            background-image: url('https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/98c836aec8144e09b830208875bb7d7d~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=2026042719245493416DCC591E02A3AE87&rrcfp=f06b921b&x-expires=1779881133&x-signature=uMj8L77M3HN3yr%2BlZ74jbAc0tNA%3D');
+            background-size: cover;
+            background-position: center;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: -2;
+            opacity: 0.5;
+        }
+        
+        .character-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+
+        
+
+    </style>
+</head>
+<body>
+    <!-- 背景图 -->
+    <div class="bg-image"></div>
+    
+    <!-- 粒子效果 -->
+    <div id="particles-js"></div>
+    
+
+    
+    <!-- 导航栏 -->
+    <nav class="fixed top-0 left-0 w-full z-50 bg-gradient-to-r from-[#0f0f2d] to-[#1a1a4e] bg-opacity-90 backdrop-blur-md shadow-lg">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                    <div class="text-2xl font-bold font-tech text-[#ff6b9d] mr-2">
+                        <i class="fas fa-server mr-2"></i>FIVM
+                    </div>
+                    <div class="hidden md:block text-sm text-[#b3b3ff]">帝都1.5内测服务器</div>
+                </div>
+                
+                <!-- 导航链接和操作按钮 -->
+                <div class="flex items-center space-x-4">
+                    <!-- 导航链接 -->
+                    <div class="hidden md:flex items-center space-x-4 overflow-x-auto whitespace-nowrap py-2">
+                        <a href="#home" class="nav-link text-sm">首页</a>
+                        <a href="#about" class="nav-link text-sm">关于服务器</a>
+                        <a href="#rules" class="nav-link text-sm">服务器规则</a>
+                        <a href="#features" class="nav-link text-sm">特色功能</a>
+                        <a href="#status" class="nav-link text-sm">服务器状态</a>
+                        <a href="#contact" class="nav-link text-sm">联系我们</a>
+                    </div>
+                    
+                    <!-- 操作按钮 -->
+                    <div class="flex items-center space-x-3">
+                        <button class="btn-primary text-sm px-4 py-1.5" onclick="launchFivem()">
+                            <i class="fas fa-gamepad mr-1"></i>加入游戏
+                        </button>
+                        <button class="btn-secondary text-sm px-4 py-1.5" onclick="copyQQ()">
+                            <i class="fab fa-qq mr-1"></i>进群
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- 英雄区域 -->
+    <section id="home" class="min-h-screen flex items-center pt-16 relative overflow-hidden">
+        <!-- 动态装饰元素 -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div class="absolute top-20 left-10 w-20 h-20 bg-[#ff6b9d] rounded-full opacity-20 animate-pulse"></div>
+            <div class="absolute top-40 right-20 w-32 h-32 bg-[#ff6b9d] rounded-full opacity-10 animate-pulse" style="animation-delay: 1s;"></div>
+            <div class="absolute bottom-40 left-1/4 w-24 h-24 bg-[#ff6b9d] rounded-full opacity-15 animate-pulse" style="animation-delay: 2s;"></div>
+            <div class="absolute bottom-20 right-1/3 w-16 h-16 bg-[#ff6b9d] rounded-full opacity-25 animate-pulse" style="animation-delay: 1.5s;"></div>
+        </div>
+        
+        <div class="container mx-auto px-4 py-16 relative z-10">
+            <div class="flex flex-col items-center">
+                <div class="w-full mb-10 text-center">
+                    <h1 class="hero-title font-bold mb-4">
+                        <span class="block">帝都1.5</span>
+                        <span class="block mt-2 text-[#ff6b9d]">内测服务器</span>
+                    </h1>
+                    <p class="hero-subtitle mb-8 max-w-2xl mx-auto">
+                        加入我们的FIVM服务器，体验最真实的虚拟世界。与其他玩家一起探索、创造、冒险！
+                    </p>
+                    <div class="flex flex-wrap gap-4 justify-center">
+                        <button class="btn-primary" onclick="copyQQ()">
+                            <i class="fab fa-qq mr-2"></i>加入QQ群
+                        </button>
+                        <button class="btn-secondary" onclick="scrollToSection('about')">
+                            了解更多
+                        </button>
+                        <button class="btn-primary" onclick="launchFivem()">
+                            <i class="fas fa-gamepad mr-2"></i>立即进入
+                        </button>
+                    </div>
+                    <div class="mt-8 flex items-center justify-center">
+                        <span class="status-online mr-2">
+                            <i class="fas fa-circle"></i>
+                        </span>
+                        <span>服务器在线</span>
+                        <span class="ml-4 text-[#b3b3ff]">
+                            <i class="fas fa-user-friends mr-1"></i>
+                            <span id="player-count">100</span> 玩家在线
+                        </span>
+                    </div>
+                </div>
+                <div class="w-full flex justify-center">
+                    <img src="https://p6-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/0d981642b09a4607a64a562a6551e741~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=2026042718373639975AD9DA5B0407BEED&rrcfp=f06b921b&x-expires=1779878302&x-signature=PpR0rS994nI3sSI2h5Q337HOfEk%3D" alt="二次元角色" class="character-image animate-float max-w-full md:max-w-2xl">
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- 关于服务器 -->
+    <section id="about" class="py-16">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl font-bold mb-12 text-center">关于服务器</h2>
+            <div class="card p-8">
+                <div class="flex flex-col md:flex-row items-center">
+                    <div class="md:w-1/3 mb-6 md:mb-0">
+                        <img src="https://p3-doubao-search-sign.byteimg.com/labis/a4e2e2bc754f12b618365ccc91857483~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&amp;x-expires=1792821870&amp;x-signature=P2m78jz74lRZRHYNJkjSfn4l4ns%3D" alt="城市夜景" class="rounded-lg shadow-lg">
+                    </div>
+                    <div class="md:w-2/3 md:pl-8">
+                        <h3 class="text-2xl font-bold mb-4">帝都1.5服务器介绍</h3>
+                        <p class="mb-4">
+                            帝都1.5是一个基于FIVM平台的虚拟世界服务器，我们致力于为玩家提供最真实、最沉浸式的游戏体验。服务器采用最新技术，确保稳定运行和优质体验。
+                        </p>
+                        <p class="mb-6">
+                            我们的服务器特色包括：真实的城市环境、丰富的角色扮演系统、多样化的任务和活动、友好的社区氛围。无论你是喜欢探索、创造还是社交，这里都能满足你的需求。
+                        </p>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="text-center">
+                                <div class="text-3xl font-bold text-[#ff6b9d]">1.5</div>
+                                <div class="text-sm text-[#b3b3ff]">版本</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-3xl font-bold text-[#ff6b9d]">24/7</div>
+                                <div class="text-sm text-[#b3b3ff]">全天候运行</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-3xl font-bold text-[#ff6b9d]">1000+</div>
+                                <div class="text-sm text-[#b3b3ff]">注册玩家</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-3xl font-bold text-[#ff6b9d]">50+</div>
+                                <div class="text-sm text-[#b3b3ff]">自定义载具</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- 服务器规则 -->
+    <section id="rules" class="py-16">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl font-bold mb-12 text-center">服务器规则</h2>
+            <div class="card p-8">
+                <div class="space-y-6">
+                    <div class="rule-item">
+                        <h3 class="text-xl font-bold mb-3 flex items-center">
+                            <i class="fas fa-gavel text-[#ff6b9d] mr-3"></i>
+                            基本规则
+                        </h3>
+                        <ul class="list-disc list-inside space-y-2 text-[#b3b3ff] pl-4">
+                            <li>尊重所有玩家和管理员，禁止任何形式的歧视、辱骂或骚扰行为。</li>
+                            <li>禁止使用任何形式的作弊软件、脚本或漏洞来获取不公平的优势。</li>
+                            <li>禁止进行任何可能影响服务器正常运行的恶意行为。</li>
+                            <li>遵守管理员的指示，不得干扰管理员执行公务。</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="rule-item">
+                        <h3 class="text-xl font-bold mb-3 flex items-center">
+                            <i class="fas fa-user-shield text-[#ff6b9d] mr-3"></i>
+                            角色扮演规则
+                        </h3>
+                        <ul class="list-disc list-inside space-y-2 text-[#b3b3ff] pl-4">
+                            <li>进入服务器后，请选择一个角色并坚持扮演。</li>
+                            <li>禁止进行不符合角色设定的行为，保持角色的一致性。</li>
+                            <li>在公共频道中，请使用符合角色身份的语言和行为。</li>
+                            <li>禁止进行"死亡竞赛"行为，除非在特定的活动或区域内。</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="rule-item">
+                        <h3 class="text-xl font-bold mb-3 flex items-center">
+                            <i class="fas fa-car-crash text-[#ff6b9d] mr-3"></i>
+                            载具使用规则
+                        </h3>
+                        <ul class="list-disc list-inside space-y-2 text-[#b3b3ff] pl-4">
+                            <li>遵守服务器内的交通规则，包括限速、停车规定等。</li>
+                            <li>禁止故意撞毁其他玩家的载具或进行危险驾驶。</li>
+                            <li>不得将载具用于非正常用途，如撞击建筑物、攀爬等。</li>
+                            <li>在特定区域内，请按规定停放载具。</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="rule-item">
+                        <h3 class="text-xl font-bold mb-3 flex items-center">
+                            <i class="fas fa-money-bill-wave text-[#ff6b9d] mr-3"></i>
+                            经济系统规则
+                        </h3>
+                        <ul class="list-disc list-inside space-y-2 text-[#b3b3ff] pl-4">
+                            <li>禁止利用任何漏洞或bug来获取非法收入。</li>
+                            <li>禁止进行未经授权的交易或诈骗行为。</li>
+                            <li>尊重服务器的经济系统，不得进行可能破坏经济平衡的行为。</li>
+                            <li>所有交易必须在角色之间进行，禁止OOC交易。</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="rule-item">
+                        <h3 class="text-xl font-bold mb-3 flex items-center">
+                            <i class="fas fa-exclamation-triangle text-[#ff6b9d] mr-3"></i>
+                            处罚措施
+                        </h3>
+                        <ul class="list-disc list-inside space-y-2 text-[#b3b3ff] pl-4">
+                            <li>违反规则将根据情节轻重受到警告、临时封禁、永久封禁等处罚。</li>
+                            <li>多次违反同一规则将受到更严厉的处罚。</li>
+                            <li>严重违反规则（如使用作弊软件、恶意破坏服务器等）将直接永久封禁。</li>
+                            <li>所有处罚决定由管理员团队根据实际情况做出，最终解释权归服务器所有。</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="mt-8 p-4 bg-[#0f0f2d] rounded-lg border border-[#ff6b9d]">
+                    <p class="text-center text-white">
+                        请所有玩家务必遵守以上规则，共同维护一个公平、友好的游戏环境！
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- 特色功能 -->
+    <section id="features" class="py-16 relative overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-b from-transparent via-[#0f0f2d] to-[#1a1a4e] opacity-80"></div>
+        <div class="container mx-auto px-4 relative z-10">
+            <h2 class="text-3xl font-bold mb-12 text-center">特色功能</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- 特色功能卡片 1 -->
+                <div class="card p-6 transform transition-all duration-500 hover:scale-105 hover:shadow-xl">
+                    <div class="feature-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">AI智能系统</h3>
+                    <p class="text-[#b3b3ff] mb-4">
+                        先进的AI智能系统，为玩家提供智能助手服务，自动解答问题，提供游戏指导，让您的游戏体验更加顺畅。
+                    </p>
+                    <ul class="text-sm text-[#b3b3ff] space-y-2">
+                        <li><i class="fas fa-check text-[#ff6b9d] mr-2"></i>24/7智能客服支持</li>
+                        <li><i class="fas fa-check text-[#ff6b9d] mr-2"></i>个性化游戏推荐</li>
+                        <li><i class="fas fa-check text-[#ff6b9d] mr-2"></i>实时问题解答</li>
+                    </ul>
+                </div>
+
+                <!-- 特色功能卡片 2 -->
+                <div class="card p-6 transform transition-all duration-500 hover:scale-105 hover:shadow-xl">
+                    <div class="feature-icon">
+                        <i class="fas fa-vr-cardboard"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">沉浸式体验</h3>
+                    <p class="text-[#b3b3ff] mb-4">
+                        精心设计的游戏场景和音效，打造身临其境的沉浸式体验，让您完全融入虚拟世界的冒险之中。
+                    </p>
+                    <ul class="text-sm text-[#b3b3ff] space-y-2">
+                        <li><i class="fas fa-check text-[#ff6b9d] mr-2"></i>高清画质渲染</li>
+                        <li><i class="fas fa-check text-[#ff6b9d] mr-2"></i>3D环绕音效</li>
+                        <li><i class="fas fa-check text-[#ff6b9d] mr-2"></i>动态天气系统</li>
+                    </ul>
+                </div>
+
+                <!-- 特色功能卡片 3 -->
+                <div class="card p-6 transform transition-all duration-500 hover:scale-105 hover:shadow-xl">
+                    <div class="feature-icon">
+                        <i class="fas fa-cogs"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">自定义系统</h3>
+                    <p class="text-[#b3b3ff] mb-4">
+                        强大的自定义系统，允许玩家个性化定制角色、载具和游戏环境，展现您独特的创意和风格。
+                    </p>
+                    <ul class="text-sm text-[#b3b3ff] space-y-2">
+                        <li><i class="fas fa-check text-[#ff6b9d] mr-2"></i>丰富的角色定制</li>
+                        <li><i class="fas fa-check text-[#ff6b9d] mr-2"></i>载具改装系统</li>
+                        <li><i class="fas fa-check text-[#ff6b9d] mr-2"></i>个性化游戏设置</li>
+                    </ul>
+                </div>
+
+                <!-- 特色功能卡片 4 -->
+                <div class="card p-6 transform transition-all duration-500 hover:scale-105 hover:shadow-xl">
+                    <div class="feature-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">社交互动</h3>
+                    <p class="text-[#b3b3ff] mb-4">
+                        完善的社交系统，支持实时语音聊天、好友系统和公会功能，让您与其他玩家轻松互动交流。
+                    </p>
+                    <ul class="text-sm text-[#b3b3ff] space-y-2">
+                        <li><i class="fas fa-check text-[#ff6b9d] mr-2"></i>实时语音通讯</li>
+                        <li><i class="fas fa-check text-[#ff6b9d] mr-2"></i>好友管理系统</li>
+                        <li><i class="fas fa-check text-[#ff6b9d] mr-2"></i>公会建设玩法</li>
+                    </ul>
+                </div>
+
+                <!-- 特色功能卡片 5 -->
+                <div class="card p-6 transform transition-all duration-500 hover:scale-105 hover:shadow-xl">
+                    <div class="feature-icon">
+                        <i class="fas fa-gamepad"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">多样化玩法</h3>
+                    <p class="text-[#b3b3ff] mb-4">
+                        丰富多样的游戏玩法，包括竞速、射击、角色扮演等多种模式，满足不同玩家的需求。
+                    </p>
+                    <ul class="text-sm text-[#b3b3ff] space-y-2">
+                        <li><i class="fas fa-check text-[#ff6b9d] mr-2"></i>多种游戏模式</li>
+                        <li><i class="fas fa-check text-[#ff6b9d] mr-2"></i>定期活动更新</li>
+                        <li><i class="fas fa-check text-[#ff6b9d] mr-2"></i>成就系统</li>
+                    </ul>
+                </div>
+
+                <!-- 特色功能卡片 6 -->
+                <div class="card p-6 transform transition-all duration-500 hover:scale-105 hover:shadow-xl">
+                    <div class="feature-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">安全保障</h3>
+                    <p class="text-[#b3b3ff] mb-4">
+                        多重安全防护机制，反作弊系统和账号保护功能，确保公平公正的游戏环境。
+                    </p>
+                    <ul class="text-sm text-[#b3b3ff] space-y-2">
+                        <li><i class="fas fa-check text-[#ff6b9d] mr-2"></i>先进反作弊系统</li>
+                        <li><i class="fas fa-check text-[#ff6b9d] mr-2"></i>账号安全保护</li>
+                        <li><i class="fas fa-check text-[#ff6b9d] mr-2"></i>公平游戏环境</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- 游戏截图展示 -->
+    <section id="screenshots" class="py-20 relative overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-b from-[#1a1a4e] to-[#0f0f2d] opacity-90"></div>
+        <div class="container mx-auto px-4 relative z-10">
+            <h2 class="text-3xl font-bold mb-12 text-center">游戏截图</h2>
+            
+            <!-- 主截图展示 -->
+            <div class="relative mb-16 screenshot-showcase">
+                <img src="https://p6-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/50f6ab42de0e4d55a6ad27eaad49fe18~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=20260427172046A7BD9FE724D89C9A4B28&rrcfp=f06b921b&x-expires=1779873742&x-signature=jk2qiFDMzgYOS7ZkfMzyVER3kUU%3D" 
+                     alt="FIVM游戏截图" 
+                     class="w-full max-w-5xl mx-auto rounded-xl shadow-2xl">
+                
+                <!-- 截图信息卡片 -->
+                <div class="absolute bottom-6 left-6 md:left-10 bg-[#1a1a4e]/90 backdrop-blur-md border border-[#ff6b9d]/40 rounded-lg p-4 shadow-xl">
+                    <h3 class="text-xl font-bold mb-2">洛圣都夜景</h3>
+                    <p class="text-sm text-[#b3b3ff]">探索真实的GTA风格城市，体验夜生活和街头竞速的刺激</p>
+                </div>
+                
+                <!-- 装饰元素 -->
+                <div class="absolute -inset-1 rounded-xl bg-gradient-to-r from-[#ff6b9d] to-[#7b68ee] opacity-30 blur-xl -z-10"></div>
+            </div>
+            
+            <!-- 截图缩略图 -->
+            <div class="flex flex-wrap justify-center gap-4">
+                <div class="screenshot-thumbnail w-24 h-16 rounded-lg overflow-hidden cursor-pointer border-2 border-[#ff6b9d]">
+                    <img src="https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/2012f231b7d94b3a8e860446835ab8bc~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=202604271726468720261D3022BFDA1C63&rrcfp=f06b921b&x-expires=1779874034&x-signature=XU245m86VW%2BTu8pLaWVpwF9lcfU%3D" 
+                         alt="截图1" 
+                         class="w-full h-full object-cover">
+                </div>
+                <!-- 其他缩略图可以在这里添加 -->
+            </div>
+        </div>
+    </section>
+
+    <!-- 服务器状态 -->
+    <section id="status" class="py-16">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl font-bold mb-12 text-center">服务器状态</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- 服务器信息 -->
+                <div class="card p-6">
+                    <h3 class="text-xl font-bold mb-4">服务器信息</h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between">
+                            <span class="text-[#b3b3ff]">服务器名称:</span>
+                            <span>帝都1.5内测服务器</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-[#b3b3ff]">服务器IP:</span>
+                            <span class="font-mono">105.59.33.48:1</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-[#b3b3ff]">版本:</span>
+                            <span>1.5</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-[#b3b3ff]">在线状态:</span>
+                            <span class="status-online">在线</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-[#b3b3ff]">当前玩家:</span>
+                            <span id="current-players">100</span>/<span id="max-players">100</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-[#b3b3ff]">延迟:</span>
+                            <span id="server-ping">45ms</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 实时统计 -->
+                <div class="card p-6">
+                    <h3 class="text-xl font-bold mb-4">实时统计</h3>
+                    <div class="space-y-6">
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <span class="text-[#b3b3ff]">今日在线峰值</span>
+                                <span>78 玩家</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2.5">
+                                <div class="bg-[#ff6b9d] h-2.5 rounded-full" style="width: 78%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <span class="text-[#b3b3ff]">服务器负载</span>
+                                <span>32%</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2.5">
+                                <div class="bg-green-500 h-2.5 rounded-full" style="width: 32%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <span class="text-[#b3b3ff]">网络带宽</span>
+                                <span>18%</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2.5">
+                                <div class="bg-blue-500 h-2.5 rounded-full" style="width: 18%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 最近活动 -->
+                <div class="card p-6 md:col-span-2">
+                    <h3 class="text-xl font-bold mb-4">最近活动</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b border-gray-700">
+                                    <th class="py-3 px-4 text-left text-[#b3b3ff]">时间</th>
+                                    <th class="py-3 px-4 text-left text-[#b3b3ff]">事件</th>
+                                    <th class="py-3 px-4 text-left text-[#b3b3ff]">玩家</th>
+                                </tr>
+                            </thead>
+                            <tbody id="activity-log">
+                                <tr class="border-b border-gray-800">
+                                    <td class="py-3 px-4">2023-07-21 15:32</td>
+                                    <td class="py-3 px-4">完成银行抢劫任务</td>
+                                    <td class="py-3 px-4">玩家_001, 玩家_002</td>
+                                </tr>
+                                <tr class="border-b border-gray-800">
+                                    <td class="py-3 px-4">2023-07-21 14:45</td>
+                                    <td class="py-3 px-4">举办街头赛车比赛</td>
+                                    <td class="py-3 px-4">管理员_001</td>
+                                </tr>
+                                <tr class="border-b border-gray-800">
+                                    <td class="py-3 px-4">2023-07-21 13:20</td>
+                                    <td class="py-3 px-4">服务器维护完成</td>
+                                    <td class="py-3 px-4">系统</td>
+                                </tr>
+                                <tr class="border-b border-gray-800">
+                                    <td class="py-3 px-4">2023-07-21 12:00</td>
+                                    <td class="py-3 px-4">开始服务器维护</td>
+                                    <td class="py-3 px-4">系统</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-3 px-4">2023-07-21 10:15</td>
+                                    <td class="py-3 px-4">新玩家注册</td>
+                                    <td class="py-3 px-4">新玩家_001</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- 联系我们 -->
+    <section id="contact" class="py-16 bg-gradient">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl font-bold mb-12 text-center">联系我们</h2>
+            <div class="flex flex-col md:flex-row gap-8">
+                <div class="md:w-1/2">
+                    <div class="card p-6 h-full">
+                        <h3 class="text-xl font-bold mb-4">加入我们的社区</h3>
+                        <p class="mb-6">
+                            如果你有任何问题、建议或反馈，欢迎加入我们的QQ群与我们交流。我们的管理团队会尽快回复你的问题。
+                        </p>
+                        <div class="space-y-4">
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 rounded-full bg-[#ff6b9d] flex items-center justify-center mr-4">
+                                    <i class="fab fa-qq text-2xl"></i>
+                                </div>
+                                <div>
+                                    <div class="text-[#b3b3ff]">QQ群</div>
+                                    <div class="font-bold">1055933481</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 rounded-full bg-[#ff6b9d] flex items-center justify-center mr-4">
+                                    <i class="fas fa-envelope text-2xl"></i>
+                                </div>
+                                <div>
+                                    <div class="text-[#b3b3ff]">邮箱</div>
+                                    <div class="font-bold">468099612@qq.com</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 rounded-full bg-[#ff6b9d] flex items-center justify-center mr-4">
+                                    <i class="fab fa-weixin text-2xl"></i>
+                                </div>
+                                <div>
+                                    <div class="text-[#b3b3ff]">公众号</div>
+                                    <div class="font-bold">FIVM帝都服务器</div>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn-primary mt-8 w-full" onclick="copyQQ()">
+                            <i class="fab fa-qq mr-2"></i>复制QQ群号
+                        </button>
+                    </div>
+                </div>
+                <div class="md:w-1/2">
+                    <div class="card p-6 h-full">
+                        <h3 class="text-xl font-bold mb-4">留言反馈</h3>
+                        <form id="feedback-form">
+                            <div class="mb-4">
+                                <label for="name" class="block text-[#b3b3ff] mb-2">昵称</label>
+                                <input type="text" id="name" class="w-full bg-[#0f0f2d] border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-[#ff6b9d]">
+                            </div>
+                            <div class="mb-4">
+                                <label for="email" class="block text-[#b3b3ff] mb-2">邮箱</label>
+                                <input type="email" id="email" class="w-full bg-[#0f0f2d] border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-[#ff6b9d]">
+                            </div>
+                            <div class="mb-4">
+                                <label for="subject" class="block text-[#b3b3ff] mb-2">主题</label>
+                                <select id="subject" class="w-full bg-[#0f0f2d] border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-[#ff6b9d]">
+                                    <option>问题反馈</option>
+                                    <option>建议</option>
+                                    <option>举报</option>
+                                    <option>合作</option>
+                                    <option>其他</option>
+                                </select>
+                            </div>
+                            <div class="mb-6">
+                                <label for="message" class="block text-[#b3b3ff] mb-2">留言内容</label>
+                                <textarea id="message" rows="5" class="w-full bg-[#0f0f2d] border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-[#ff6b9d]"></textarea>
+                            </div>
+                            <button type="submit" class="btn-primary w-full">
+                                提交留言
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- 页脚 -->
+    <footer class="py-8 border-t border-gray-800">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <div class="text-xl font-bold font-tech text-[#ff6b9d]">
+                        <i class="fas fa-server mr-2"></i>FIVM
+                    </div>
+                    <div class="text-sm text-[#b3b3ff]">帝都1.5内测服务器</div>
+                </div>
+                <div class="flex space-x-6">
+                    <a href="#" class="text-[#b3b3ff] hover:text-[#ff6b9d] transition-colors">
+                        <i class="fab fa-qq text-xl"></i>
+                    </a>
+                    <a href="#" class="text-[#b3b3ff] hover:text-[#ff6b9d] transition-colors">
+                        <i class="fab fa-weibo text-xl"></i>
+                    </a>
+                    <a href="#" class="text-[#b3b3ff] hover:text-[#ff6b9d] transition-colors">
+                        <i class="fab fa-bilibili text-xl"></i>
+                    </a>
+                    <a href="#" class="text-[#b3b3ff] hover:text-[#ff6b9d] transition-colors">
+                        <i class="fab fa-youtube text-xl"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="mt-6 text-center text-sm text-[#b3b3ff]">
+                <p>© 2023 FIVM帝都1.5内测服务器. 保留所有权利.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- 注册模态框 -->
+    <div id="register-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">×</span>
+            <h2 class="text-2xl font-bold mb-6 text-center">账号注册</h2>
+            <div class="form-notice">
+                <i class="fas fa-info-circle"></i>
+                请使用QQ邮箱注册，以便我们更好地为您提供服务
+            </div>
+            <form id="register-form">
+                <div class="form-group">
+                    <label for="register-username">用户名</label>
+                    <div class="input-icon">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="register-username" placeholder="请输入用户名" required="">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="register-email">QQ邮箱</label>
+                    <div class="input-icon">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="register-email" placeholder="请输入QQ邮箱" required="" pattern=".*@qq\.com$">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="register-password">密码</label>
+                    <div class="input-icon">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="register-password" placeholder="请输入密码" required="" minlength="6">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="register-confirm-password">确认密码</label>
+                    <div class="input-icon">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="register-confirm-password" placeholder="请再次输入密码" required="" minlength="6">
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary w-full">注册</button>
+                <div class="form-toggle">
+                    已有账号？ <a href="#" onclick="switchToLogin(event)">立即登录</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 登录模态框 -->
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">×</span>
+            <h2 class="text-2xl font-bold mb-6 text-center">账号登录</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="login-username">用户名/QQ邮箱</label>
+                    <div class="input-icon">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="login-username" placeholder="请输入用户名或QQ邮箱" required="">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">密码</label>
+                    <div class="input-icon">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="login-password" placeholder="请输入密码" required="" minlength="6">
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary w-full">登录</button>
+                <div class="form-toggle">
+                    还没有账号？ <a href="#" onclick="switchToRegister(event)">立即注册</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 返回顶部按钮 -->
+    <button id="back-to-top" class="fixed bottom-8 right-8 bg-[#ff6b9d] text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg opacity-0 transition-opacity duration-300">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+    
+    <!-- 服务器实时状态面板 -->
+    <div class="server-status-panel">
+        <div class="status-content">
+            <div class="status-item">
+                <i class="fas fa-user-friends"></i>
+                <span id="status-player-count">100</span>/<span id="status-max-players">100</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 初始化粒子效果和音乐播放器
+        document.addEventListener('DOMContentLoaded', function() {
+            particlesJS('particles-js', {
+                "particles": {
+                    "number": {
+                        "value": 80,
+                        "density": {
+                            "enable": true,
+                            "value_area": 800
+                        }
+                    },
+                    "color": {
+                        "value": ["#ff6b9d", "#b3b3ff", "#ffffff"]
+                    },
+                    "shape": {
+                        "type": "circle",
+                        "stroke": {
+                            "width": 0,
+                            "color": "#000000"
+                        }
+                    },
+                    "opacity": {
+                        "value": 0.5,
+                        "random": true,
+                        "anim": {
+                            "enable": true,
+                            "speed": 1,
+                            "opacity_min": 0.1,
+                            "sync": false
+                        }
+                    },
+                    "size": {
+                        "value": 3,
+                        "random": true,
+                        "anim": {
+                            "enable": true,
+                            "speed": 2,
+                            "size_min": 0.1,
+                            "sync": false
+                        }
+                    },
+                    "line_linked": {
+                        "enable": true,
+                        "distance": 150,
+                        "color": "#ff6b9d",
+                        "opacity": 0.2,
+                        "width": 1
+                    },
+                    "move": {
+                        "enable": true,
+                        "speed": 1,
+                        "direction": "none",
+                        "random": true,
+                        "straight": false,
+                        "out_mode": "out",
+                        "bounce": false,
+                        "attract": {
+                            "enable": false,
+                            "rotateX": 600,
+                            "rotateY": 1200
+                        }
+                    }
+                },
+                "interactivity": {
+                    "detect_on": "canvas",
+                    "events": {
+                        "onhover": {
+                            "enable": true,
+                            "mode": "grab"
+                        },
+                        "onclick": {
+                            "enable": true,
+                            "mode": "push"
+                        },
+                        "resize": true
+                    },
+                    "modes": {
+                        "grab": {
+                            "distance": 140,
+                            "line_linked": {
+                                "opacity": 0.5
+                            }
+                        },
+                        "push": {
+                            "particles_nb": 3
+                        }
+                    }
+                },
+                "retina_detect": true
+            });
+            
+            // 模拟玩家数量变化
+            setInterval(updatePlayerCount, 5000);
+            
+            // 初始化服务器状态面板
+            initServerStatusPanel();
+            
+            // 表单提交事件
+            document.getElementById('feedback-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                submitFeedback();
+            });
+            
+            
+            // 返回顶部按钮
+            window.addEventListener('scroll', function() {
+                const backToTopButton = document.getElementById('back-to-top');
+                if (window.pageYOffset > 300) {
+                    backToTopButton.style.opacity = '1';
+                } else {
+                    backToTopButton.style.opacity = '0';
+                }
+            });
+            
+            document.getElementById('back-to-top').addEventListener('click', function() {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            });
+            
+            // 平滑滚动
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href');
+                    const targetElement = document.querySelector(targetId);
+                    
+                    if (targetElement) {
+                        window.scrollTo({
+                            top: targetElement.offsetTop - 80,
+                            behavior: 'smooth'
+                        });
+                        
+                        // 如果是移动端，点击后关闭菜单
+                        document.getElementById('mobile-menu').classList.remove('active');
+                    }
+                });
+            });
+            
+            // 初始化动画
+            initAnimations();
+            
+            // 初始化玩家评价轮播
+            initTestimonialSlider();
+        });
+        
+        // 复制QQ群号
+        function copyQQ() {
+            const qqGroup = '1055933481';
+            navigator.clipboard.writeText(qqGroup).then(() => {
+                alert('QQ群号 ' + qqGroup + ' 已复制到剪贴板！');
+            }).catch(err => {
+                console.error('复制失败:', err);
+                alert('复制失败，请手动输入QQ群号: ' + qqGroup);
+            });
+        }
+        
+        // 滚动到指定区域
+        function scrollToSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            if (section) {
+                window.scrollTo({
+                    top: section.offsetTop - 80,
+                    behavior: 'smooth'
+                });
+            }
+        }
+        
+        // 更新玩家数量
+        function updatePlayerCount() {
+            const playerCountElement = document.getElementById('player-count');
+            const currentPlayersElement = document.getElementById('current-players');
+            const currentCount = parseInt(playerCountElement.textContent);
+            
+            // 随机增减1-3名玩家
+            const change = Math.floor(Math.random() * 5) - 2; // -2 to 2
+            const newCount = Math.max(0, Math.min(100, currentCount + change));
+            
+            playerCountElement.textContent = newCount;
+            currentPlayersElement.textContent = newCount;
+            
+            // 更新服务器状态
+            updateServerStatus();
+        }
+        
+        // 更新服务器状态
+        function updateServerStatus() {
+            const pingElement = document.getElementById('server-ping');
+            const currentPing = parseInt(pingElement.textContent);
+            
+            // 随机波动延迟
+            const change = Math.floor(Math.random() * 10) - 5; // -5 to 4
+            const newPing = Math.max(10, currentPing + change);
+            
+            pingElement.textContent = newPing + 'ms';
+        }
+        
+        // 提交反馈
+        function submitFeedback() {
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const subject = document.getElementById('subject').value;
+            const message = document.getElementById('message').value;
+            
+            if (!name || !email || !message) {
+                alert('请填写完整的表单信息！');
+                return;
+            }
+            
+            // 模拟提交
+            alert('感谢您的反馈，我们会尽快处理！');
+            
+            // 重置表单
+            document.getElementById('feedback-form').reset();
+        }
+        
+        // 注册登录功能
+        function openRegisterModal() {
+            document.getElementById('register-modal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function openLoginModal() {
+            document.getElementById('login-modal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeModal() {
+            document.getElementById('register-modal').style.display = 'none';
+            document.getElementById('login-modal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+        
+        function switchToLogin(event) {
+            event.preventDefault();
+            document.getElementById('register-modal').style.display = 'none';
+            document.getElementById('login-modal').style.display = 'block';
+        }
+        
+        function switchToRegister(event) {
+            event.preventDefault();
+            document.getElementById('login-modal').style.display = 'none';
+            document.getElementById('register-modal').style.display = 'block';
+        }
+        
+        // 邮箱验证
+        function validateQQEmail(email) {
+            const qqEmailRegex = /^[a-zA-Z0-9._%+-]+@qq\.com$/;
+            return qqEmailRegex.test(email);
+        }
+        
+        // 注册表单提交
+        document.getElementById('register-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('register-username').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const confirmPassword = document.getElementById('register-confirm-password').value;
+            
+            if (!username || !email || !password || !confirmPassword) {
+                alert('请填写完整的注册信息！');
+                return;
+            }
+            
+            if (!validateQQEmail(email)) {
+                alert('请使用QQ邮箱注册！');
+                return;
+            }
+            
+            if (password.length < 6) {
+                alert('密码长度至少为6位！');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                alert('两次输入的密码不一致！');
+                return;
+            }
+            
+            // 模拟注册
+            alert('注册成功！欢迎加入FIVM帝都服务器，' + username + '！');
+            closeModal();
+        });
+        
+        // 登录表单提交
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+            
+            if (!username || !password) {
+                alert('请填写完整的登录信息！');
+                return;
+            }
+            
+            if (password.length < 6) {
+                alert('密码长度不正确！');
+                return;
+            }
+            
+            // 模拟登录
+            alert('登录成功！欢迎回来，' + username + '！');
+            closeModal();
+        });
+        
+        // 点击模态框外部关闭
+        window.addEventListener('click', function(event) {
+            const registerModal = document.getElementById('register-modal');
+            const loginModal = document.getElementById('login-modal');
+            
+            if (event.target === registerModal) {
+                registerModal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+            
+            if (event.target === loginModal) {
+                loginModal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        });
+        
+        // 点击模态框外部关闭
+        window.addEventListener('click', function(event) {
+            const loginModal = document.getElementById('login-modal');
+            const registerModal = document.getElementById('register-modal');
+            
+            if (event.target === loginModal) {
+                loginModal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+            
+            if (event.target === registerModal) {
+                registerModal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        });
+        
+
+        
+        // 启动FiveM
+        function launchFivem() {
+            // 模拟启动FiveM并连接到服务器
+            alert('正在启动FiveM并连接到帝都1.5内测服务器...');
+            
+            // 在实际应用中，这里会使用fivem://协议链接
+            // window.location.href = 'fivem://connect/105.59.33.48:1';
+            
+            // 模拟连接成功
+            setTimeout(function() {
+                alert('连接成功！正在进入服务器...');
+            }, 2000);
+        }
+        
+        // 初始化动画
+        function initAnimations() {
+            // 使用GSAP添加动画效果
+            gsap.from('.hero-title', {
+                opacity: 0,
+                y: 50,
+                duration: 1,
+                delay: 0.2
+            });
+            
+            gsap.from('.hero-subtitle', {
+                opacity: 0,
+                y: 30,
+                duration: 1,
+                delay: 0.5
+            });
+            
+            gsap.from('.btn-primary, .btn-secondary', {
+                opacity: 0,
+                y: 20,
+                duration: 1,
+                delay: 0.8,
+                stagger: 0.2
+            });
+            
+            gsap.from('.character-image', {
+                opacity: 0,
+                scale: 0.8,
+                duration: 1.5,
+                delay: 0.3
+            });
+            
+            // 滚动触发动画
+            const sections = document.querySelectorAll('section');
+            sections.forEach(section => {
+                gsap.from(section.querySelector('h2'), {
+                    scrollTrigger: {
+                        trigger: section,
+                        start: 'top 80%'
+                    },
+                    opacity: 0,
+                    y: 30,
+                    duration: 0.8
+                });
+                
+                gsap.from(section.querySelectorAll('.card'), {
+                    scrollTrigger: {
+                        trigger: section,
+                        start: 'top 70%'
+                    },
+                    opacity: 0,
+                    y: 50,
+                    duration: 0.8,
+                    stagger: 0.2
+                });
+            });
+        }
+
+        // 初始化服务器状态面板
+        function initServerStatusPanel() {
+            const statusPlayerCount = document.getElementById('status-player-count');
+            const statusMaxPlayers = document.getElementById('status-max-players');
+            const statusPing = document.getElementById('status-ping');
+            
+            // 同步主页面的玩家数量和延迟数据
+            function updateStatusPanel() {
+                const mainPlayerCount = document.getElementById('player-count');
+                const mainCurrentPlayers = document.getElementById('current-players');
+                const mainMaxPlayers = document.getElementById('max-players');
+                const mainPing = document.getElementById('server-ping');
+                
+                if (mainPlayerCount && statusPlayerCount) {
+                    statusPlayerCount.textContent = mainPlayerCount.textContent;
+                }
+                
+                if (mainCurrentPlayers && statusPlayerCount) {
+                    statusPlayerCount.textContent = mainCurrentPlayers.textContent;
+                }
+                
+                if (mainMaxPlayers && statusMaxPlayers) {
+                    statusMaxPlayers.textContent = mainMaxPlayers.textContent;
+                }
+                
+                if (mainPing && statusPing) {
+                    statusPing.textContent = mainPing.textContent;
+                }
+            }
+            
+            // 初始更新
+            updateStatusPanel();
+            
+            // 定期同步更新
+            setInterval(updateStatusPanel, 1000);
+        }
+    </script>
+
+</body></html>
